@@ -1,5 +1,22 @@
 import { useState } from 'react'
-import { estadoInicial } from '../constants/dados'
+
+const estadoInicial = {
+  cnpj: '',
+  nome_instituicao: '',
+  tipologia_atividade: '',
+  contato: '',
+  telefone: '',
+  tipo_instituicao: '',
+  investimentos: {},
+  fontes_financiamento: {
+    recursos_proprios: false,
+    bancos_publicos: false,
+    bancos_privados: false,
+    bndes: false,
+    outras: false,
+  },
+  ofertas: {},
+}
 
 export function useFormulario() {
   const [dados, setDados] = useState(estadoInicial)
@@ -18,30 +35,21 @@ export function useFormulario() {
     }))
   }
 
-  function atualizarNecessidade(itemCodigo, servicoCodigo, nivel) {
+  function atualizarOferta(itemCodigo, servicoCodigo, nivel) {
     const chave = `${itemCodigo}__${servicoCodigo}`
     setDados(prev => ({
       ...prev,
-      necessidades: { ...prev.necessidades, [chave]: nivel },
+      ofertas: { ...prev.ofertas, [chave]: nivel },
     }))
   }
 
-  function toggleMercado(valor) {
-    setDados(prev => {
-      const existe = prev.mercados.includes(valor)
-      return {
-        ...prev,
-        mercados: existe
-          ? prev.mercados.filter(m => m !== valor)
-          : [...prev.mercados, valor],
-      }
-    })
+  function definirTipoInstituicao(valor) {
+    setDados(prev => ({ ...prev, tipo_instituicao: valor }))
   }
 
   async function submeter() {
     setEnviando(true)
     setErro(null)
-    // Simulação — será integrado ao backend depois
     try {
       await new Promise(resolve => setTimeout(resolve, 1000))
       setEnviado(true)
@@ -66,9 +74,8 @@ export function useFormulario() {
 
     setDados(prev => ({
       ...prev,
-      nome_empresa: prev.nome_empresa || fantasia || razao,
+      nome_instituicao: prev.nome_instituicao || fantasia || razao,
       telefone: prev.telefone || (ddd && tel ? `(${ddd}) ${tel}` : ''),
-      // tipologia_atividade pode ser preenchida manualmente; se vazio, coloca o CNAE principal como pista.
       tipologia_atividade: prev.tipologia_atividade || (payload?.cnae_principal ? `CNAE: ${payload.cnae_principal}` : ''),
     }))
   }
@@ -80,8 +87,8 @@ export function useFormulario() {
     erro,
     atualizarCampo,
     atualizarNested,
-    atualizarNecessidade,
-    toggleMercado,
+    atualizarOferta,
+    definirTipoInstituicao,
     submeter,
     definirErro,
     preencherDadosEmpresa,

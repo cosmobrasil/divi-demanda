@@ -1,4 +1,4 @@
-export default function EscalaRadio({ label, name, value, onChange, labels = ['Baixo', 'Médio', 'Alto'], cor = 'laranja' }) {
+export default function EscalaRadio({ label, name, value, onChange, labels = ['Baixo', 'Médio', 'Alto'] }) {
   const ativo = 'bg-[#d97706] border-[#d97706] text-white shadow-lg shadow-orange-950/20'
   const hover = 'hover:border-[#d97706] hover:text-[#d97706]'
 
@@ -7,7 +7,7 @@ export default function EscalaRadio({ label, name, value, onChange, labels = ['B
       <span className="text-sm sm:text-base text-slate-700 flex-1 leading-snug">{label}</span>
       <div className="flex flex-col items-start sm:items-center gap-1 flex-shrink-0">
         <div className="flex gap-2">
-          {[1, 2, 3].map((nivel, i) => (
+          {[1, 2, 3].map(nivel => (
             <button
               key={nivel}
               type="button"

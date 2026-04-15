@@ -5,3 +5,10 @@ __pycache__/
 *.pyc
 .DS_Store
 venv/
+netlify/publish/
+.netlify/
+
+# PDFs de referência (evitar commit acidental)
+CLASSIFICAÇÃO DE SERVIÇOS TECNOLÓGICOS NÁUTICA - SANTA CATARINA.pdf
+OFERTA DE SERVIÇOS TECNOLÓGICOS NÁUTICA SANTA CATARINA.pdf
+PLANO DE GESTÃO DE ECONOMIA CIRCULAR - Setor: Construção Civil - Foresight 2026.pdf

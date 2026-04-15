@@ -1,0 +1,117 @@
+Utilização Prática da API
+Veja abaixo como utilizar os dados via requisição JSON:
+
+Como realizar a requisição via PHP:
+
+// ---- INICIE AS REQUISIÇÕES
+$ch = curl_init();
+				
+// ---- DEFINA O ENDPOINT, INCLUINDO SEU TOKEN, E O CNPJ DA EMPRESA A SER RETORNADO SEM PONTUAÇÃO
+$Caminho="https://www.empresaqui.com.br/api/SEU_TOKEN/CNPJ_SEM_PONTUACAO;
+
+// ---- DÊ O SET NAS CONFIGURAÇÕES PADRÕES DE CURL
+curl_setopt($ch, CURLOPT_URL, $Caminho);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+curl_setopt($ch, CURLOPT_HEADER, FALSE);
+
+// ---- EXECUTE O CURL PARA UMA VARIÁVEL
+$response = curl_exec($ch);
+
+// ---- FECHE A CONEXÃO EXTERNA
+curl_close($ch);
+
+// ---- DECODIFIQUE OS DADOS JSON PARA ARRAY PHP
+$objeto=json_decode($response);
+				
+Quais os nomes das variáveis e como identificá-las:
+
+// ---- DADOS BÁSICOS DE CADASTRO E CONTATO
+
+$objeto->cnpj;
+$objeto->razao;
+$objeto->fantasia;
+$objeto->email;
+$objeto->ddd_1;
+$objeto->tel_1;
+$objeto->ddd_2;
+$objeto->tel_2;
+$objeto->email;
+$objeto->site;
+
+// ---- DADOS DE ENDEREÇO E LOCALIZAÇÃO
+
+$objeto->log_tipo;
+$objeto->log_nome;
+$objeto->log_num;
+$objeto->log_comp;
+$objeto->log_bairro;
+$objeto->log_municipio;
+$objeto->log_uf;
+
+// ---- DADOS ESPECÍFICOS E TRIBUTÁRIOS
+
+$objeto->cnae_principal;
+$objeto->cnae_secundario;
+$objeto->matriz; // 1 - MATRIZ; 2 - FILIAL; 
+$objeto->situacao_cadastral; // 1 - NULA; 2 ATIVA; 3 SUSPENSA; 4 INAPTA; 8 BAIXADA;
+$objeto->data_sit_cad;
+$objeto->natureza_juridica; // CÓDIGO CORRESPONDENTE A TABELA DE NATUREZA JURÍDICA
+$objeto->data_abertura;
+$objeto->opcao_mei;
+$objeto->data_mei;
+$objeto->data_exc_mei;
+$objeto->opcao_simples;
+$objeto->data_simples;
+$objeto->data_exc_simples;
+$objeto->porte; // 0 - NÃO INFORMADO; 1 - MICROEMPRESA; 3 - PEQUENO PORTE; 5 - MÉDIO/GRANDE PORTE
+$objeto->capital_social;
+$objeto->regime_tributario;
+$objeto->faturamento;
+$objeto->quadro_funcionarios;
+				
+Variáveis em array:
+
+
+// ---- PROGRAMAS ESPECIAIS
+
+$objeto->programas_especiais; // possíveis valores: "EMPRESA CIDADÃ", "IMPORTAÇÃO E EXPORTACAO", "PAT", "RECUPERACAO JUDICIAL".
+
+*importante:* Uma empresa pode fazer parte de vários programas especiais ou de nenhum, caso nenhum o array estará vazio.
+
+// ---- DADOS DO QUADRO SOCIETÁRIO EM ARRAY
+
+$objeto->socios_nome;
+$objeto->socios_cpf_cnpj;
+$objeto->socios_entrada;
+$objeto->socios_qualificacao;
+$objeto->socios_faixa_etaria;
+
+FAIXA ETÁRIA É DENIFIDA POR CÓDIGOS QUE SIGNIFICAM:
+CÓDIGO 1 EQUIVALE A: "0 A 12 ANOS";
+CÓDIGO 2 EQUIVALE A: "13 A 20 ANOS";
+CÓDIGO 3 EQUIVALE A: "21 A 30 ANOS";
+CÓDIGO 4 EQUIVALE A: "31 A 40 ANOS";
+CÓDIGO 5 EQUIVALE A: "41 A 50 ANOS";
+CÓDIGO 6 EQUIVALE A: "51 A 60 ANOS";
+CÓDIGO 7 EQUIVALE A: "61 A 70 ANOS";
+CÓDIGO 8 EQUIVALE A: "71 A 80 ANOS";
+CÓDIGO 9 EQUIVALE A: "ACIMA DE 80 ANOS";
+CÓDIGO 0 EQUIVALE A: "NÃO SE APLICA";
+
+// ---- DADOS DAS DÍVIDAS FEDERAIS ATIVAS
+
+$objeto->dividas_numero;
+$objeto->dividas_tipo_devedor;
+$objeto->dividas_tipo_situacao;
+$objeto->dividas_inscricao;
+$objeto->dividas_receita;
+$objeto->dividas_data;
+$objeto->dividas_indicador;
+$objeto->dividas_valor;
+
+$objeto->historicoDividasPorTrimestre; // Histórico de dívidas trimestrais desde 2020. Cada item do array representa um trimestre, contendo os campos trimestreAno e valor.
+				
+$objeto->historicoRegimePorAno; // Histórico de regime tributário por ano. Cada item do array representa um ano, contendo os campos Ano e Regime.
+Exemplo de Resultado de Consulta via API do CNPJ 21792257000101:
+
+{"cnpj":"21792257000101","razao":"EMPRESAQUI TECNOLOGIA DA INFORMACAO LTDA","fantasia":"EMPRESAQUI","ddd_1":"33","tel_1":"999580012","ddd_2":null,"tel_2":null,"email":"faturamento@empresaqui.com.b

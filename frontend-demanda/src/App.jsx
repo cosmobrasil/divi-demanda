@@ -1,144 +1,617 @@
+import { useState } from 'react'
+import CheckboxGroup from './components/ui/CheckboxGroup'
+import EscalaRadio from './components/ui/EscalaRadio'
 import ProgressBar from './components/ui/ProgressBar'
-import Etapa1Identificacao from './components/forms/Etapa1Identificacao'
-import Etapa2Mercados from './components/forms/Etapa2Mercados'
-import Etapa3Investimentos from './components/forms/Etapa3Investimentos'
-import Etapa4Financiamento from './components/forms/Etapa4Financiamento'
-import Etapa5Necessidades from './components/forms/Etapa5Necessidades'
-import Etapa6Confirmacao from './components/forms/Etapa6Confirmacao'
+import SolucaoCard from './components/ui/SolucaoCard'
+import {
+  DESCRICAO_PROJETO,
+  ETAPAS,
+  FONTES_FINANCIAMENTO,
+  IMPEDIMENTOS_INOVACAO,
+  INVESTIMENTOS_FUTUROS,
+  LABELS_INVESTIMENTO,
+  LABELS_NECESSIDADE,
+  MERCADOS,
+  SERVICOS,
+  SOLUCOES,
+  SUBTITULO_PROJETO,
+  TITULO_PROJETO,
+} from './constants/dados'
 import { useFormulario } from './hooks/useFormulario'
+import { buscarEmpresaPorCnpj } from './services/empresaqui'
+import { validarCnpj } from './utils/cnpj'
 
-const TITULOS = [
-  'Informações da Empresa',
-  'Mercados de Atuação',
-  'Investimentos Futuros',
-  'Fontes de Financiamento',
-  'Necessidade de Serviços Tecnológicos',
-  'Confirmação',
-]
+function Container({ children, className = '' }) {
+  return (
+    <div className={`panel ${className}`}>
+      <div className="panel-inner">{children}</div>
+    </div>
+  )
+}
 
-const SUBTITULOS = [
-  'Preencha os dados básicos da sua empresa',
-  'Em quais mercados sua empresa atua?',
-  'Nos próximos 3 anos, qual o nível de investimento por solução?',
-  'Quais fontes de recursos pretende utilizar nos próximos 3 anos?',
-  'Qual a necessidade de cada serviço tecnológico por solução?',
-  'Verifique os dados antes de enviar',
-]
+function SectionTitle({ eyebrow, title, description }) {
+  return (
+    <div className="space-y-2">
+      {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+      <h2 className="section-title">{title}</h2>
+      {description && <p className="section-description">{description}</p>}
+    </div>
+  )
+}
+
+function TextField({ label, placeholder, value, onChange, required = false }) {
+  return (
+    <label className="field">
+      <span className="field-label">
+        {label}{required && <span className="text-[#d97706]"> *</span>}
+      </span>
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="field-input"
+      />
+    </label>
+  )
+}
+
+function ActionButton({ variant = 'primary', children, ...props }) {
+  return (
+    <button
+      {...props}
+      className={variant === 'primary' ? 'action-primary' : 'action-secondary'}
+    >
+      {children}
+    </button>
+  )
+}
+
+function StepPill({ index, active, label }) {
+  return (
+    <div className={`step-pill ${active ? 'step-pill-active' : ''}`}>
+      <span className="step-pill-number">{index + 1}</span>
+      <span className="step-pill-label">{label}</span>
+    </div>
+  )
+}
+
+function SummaryLine({ label, value }) {
+  return (
+    <div className="summary-line">
+      <span>{label}</span>
+      <strong>{value || '—'}</strong>
+    </div>
+  )
+}
 
 export default function App() {
   const form = useFormulario()
+  const [etapa, setEtapa] = useState(0)
+  const [termosAceitos, setTermosAceitos] = useState(false)
+  const [cnpjBuscando, setCnpjBuscando] = useState(false)
+
+  function proxima() {
+    setEtapa(prev => Math.min(prev + 1, ETAPAS.length - 1))
+  }
+
+  function voltar() {
+    setEtapa(prev => Math.max(prev - 1, 0))
+  }
+
+  function validarIdentificacao() {
+    if (!form.dados.nome_empresa.trim() || !form.dados.tipologia_atividade.trim()) {
+      form.definirErro('Preencha os campos obrigatórios da identificação.')
+      return false
+    }
+    return true
+  }
+
+  async function enviar() {
+    await form.submeter()
+  }
+
+  async function buscarCnpj() {
+    form.definirErro(null)
+    const cnpj = form.dados.cnpj
+    if (!validarCnpj(cnpj)) {
+      form.definirErro('CNPJ inválido. Informe 14 dígitos válidos.')
+      return
+    }
+
+    setCnpjBuscando(true)
+    try {
+      const payload = await buscarEmpresaPorCnpj({ cnpj })
+      form.preencherDadosEmpresa(payload)
+    } catch (e) {
+      form.definirErro(e?.message || 'Erro ao consultar CNPJ.')
+    } finally {
+      setCnpjBuscando(false)
+    }
+  }
+
+  const mercadosSelecionados = form.dados.mercados
+    .map(valor => MERCADOS.find(op => op.value === valor)?.label)
+    .filter(Boolean)
+    .join(', ')
+
+  const fontesSelecionadas = Object.entries(form.dados.fontes_financiamento)
+    .filter(([, ativo]) => ativo)
+    .map(([chave]) => FONTES_FINANCIAMENTO.find(op => op.value === chave)?.label)
+    .filter(Boolean)
+    .join(', ')
 
   if (form.enviado) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">✓</span>
+      <div className="app-shell">
+        <div className="app-frame">
+          <header className="brand-bar">
+            <div className="brand-mark">
+              <span />
+            </div>
+            <div>
+              <p className="brand-kicker">Circularidade 2.0</p>
+              <h1 className="brand-title">{TITULO_PROJETO}</h1>
+              <p className="brand-subtitle">{SUBTITULO_PROJETO}</p>
+            </div>
+          </header>
+
+          <div className="panel mt-6">
+            <div className="panel-inner text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#fff7ed] text-[#d97706] shadow-sm">
+                <span className="text-3xl font-bold">✓</span>
+              </div>
+              <p className="eyebrow justify-center">Relatório gerado</p>
+              <h2 className="section-title text-center">Resposta registrada com sucesso</h2>
+              <p className="section-description max-w-2xl mx-auto">
+                Obrigado por participar do levantamento de demanda tecnológica para a construção civil em Divinópolis/MG.
+              </p>
+
+              <div className="mt-8 grid gap-4 text-left md:grid-cols-2">
+                <Container className="p-0">
+                  <div className="panel-inner">
+                    <h3 className="mini-title">Identificação</h3>
+                    <SummaryLine label="Empresa" value={form.dados.nome_empresa} />
+                    <SummaryLine label="Tipologia" value={form.dados.tipologia_atividade} />
+                    <SummaryLine label="Contato" value={form.dados.contato} />
+                    <SummaryLine label="Telefone" value={form.dados.telefone} />
+                  </div>
+                </Container>
+
+                <Container className="p-0">
+                  <div className="panel-inner">
+                    <h3 className="mini-title">Perfil geral</h3>
+                    <SummaryLine label="Mercados" value={mercadosSelecionados || 'Nenhum selecionado'} />
+                    <SummaryLine label="Fontes de financiamento" value={fontesSelecionadas || 'Nenhuma selecionada'} />
+                  </div>
+                </Container>
+              </div>
+            </div>
           </div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Respostas enviadas!</h2>
-          <p className="text-gray-500 text-sm">
-            Obrigado por participar do levantamento de demanda tecnológica para a
-            construção civil em Divinópolis/MG.
-          </p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-blue-700 text-white py-4 px-4 shadow">
-        <div className="max-w-2xl mx-auto">
-          <p className="text-blue-200 text-xs font-medium uppercase tracking-wide mb-0.5">
-            Technology Foresight · Construção Civil · Divinópolis/MG
-          </p>
-          <h1 className="text-lg font-bold leading-tight">
-            Levantamento de Demanda por Serviços Tecnológicos
-          </h1>
+    <div className="app-shell">
+      <div className="app-frame">
+        <header className="brand-bar">
+          <div className="brand-mark">
+            <span />
+          </div>
+          <div>
+            <p className="brand-kicker">Circularidade 2.0</p>
+            <h1 className="brand-title">{TITULO_PROJETO}</h1>
+            <p className="brand-subtitle">{SUBTITULO_PROJETO}</p>
+          </div>
+        </header>
+
+        <div className="panel mt-6">
+          <div className="panel-inner">
+            <div className="flex flex-col gap-6">
+              <div className="space-y-4">
+                <SectionTitle
+                  eyebrow="Fluxo guiado"
+                  title={ETAPAS[etapa]}
+                  description={DESCRICAO_PROJETO}
+                />
+                <ProgressBar etapaAtual={etapa} />
+                <div className="flex flex-wrap gap-2">
+                  {ETAPAS.map((label, index) => (
+                    <StepPill key={label} index={index} active={index === etapa} label={label} />
+                  ))}
+                </div>
+              </div>
+
+              {etapa === 0 && (
+                <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                  <Container>
+                    <SectionTitle
+                      eyebrow="Antes de começar"
+                      title="Termos e objetivo"
+                      description="Este formulário reúne a visão das empresas da construção civil sobre demanda de soluções tecnológicas e apoia a leitura estratégica das megatendências do setor."
+                    />
+                    <div className="mt-6 space-y-3 text-sm text-slate-600">
+                      <p>• O questionário é institucional e orientado a diagnóstico.</p>
+                      <p>• As respostas serão analisadas de forma consolidada.</p>
+                      <p>• O fluxo foi desenhado para leitura rápida e progressiva.</p>
+                    </div>
+                  </Container>
+
+                  <Container>
+                    <div className="space-y-4">
+                      <div className="notice-box">
+                        <p className="notice-title">O que este app coleta</p>
+                        <p className="notice-text">
+                          Identificação da empresa, perfil de atuação, investimento futuro, financiamento e necessidade de serviços por solução tecnológica.
+                        </p>
+                      </div>
+                      <div className="notice-box notice-box-soft">
+                        <p className="notice-title">Tempo estimado</p>
+                        <p className="notice-text">O preenchimento é guiado e tem leitura sequencial por blocos.</p>
+                      </div>
+                      <label className="check-ack">
+                        <input
+                          type="checkbox"
+                          checked={termosAceitos}
+                          onChange={e => setTermosAceitos(e.target.checked)}
+                        />
+                        <span>Li e concordo em prosseguir com o questionário.</span>
+                      </label>
+                    </div>
+                  </Container>
+                </div>
+              )}
+
+              {etapa === 1 && (
+                <Container>
+                  <SectionTitle
+                    eyebrow="Identificação"
+                    title="Dados da empresa"
+                    description="Preencha os campos principais de identificação da organização respondente."
+                  />
+                  <div className="mt-6 grid gap-5 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                        <TextField
+                          label="CNPJ"
+                          placeholder="Ex: 21.792.257/0001-01"
+                          value={form.dados.cnpj}
+                          onChange={v => form.atualizarCampo('cnpj', v)}
+                        />
+                        <ActionButton
+                          variant="secondary"
+                          type="button"
+                          onClick={buscarCnpj}
+                          disabled={cnpjBuscando}
+                        >
+                          {cnpjBuscando ? 'Buscando...' : 'Buscar CNPJ'}
+                        </ActionButton>
+                      </div>
+                      <p className="mt-2 text-xs text-slate-500">
+                        Ao buscar, o app preenche automaticamente nome e telefone quando disponiveis.
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <TextField
+                        label="Nome da empresa"
+                        placeholder="Ex: Construtora ABC Ltda"
+                        value={form.dados.nome_empresa}
+                        onChange={v => form.atualizarCampo('nome_empresa', v)}
+                        required
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <TextField
+                        label="Tipologia de atividade econômica"
+                        placeholder="Ex: Incorporadora, empreiteira, prestadora de serviços..."
+                        value={form.dados.tipologia_atividade}
+                        onChange={v => form.atualizarCampo('tipologia_atividade', v)}
+                        required
+                      />
+                    </div>
+                    <TextField
+                      label="Nome para contato"
+                      placeholder="Nome do responsável"
+                      value={form.dados.contato}
+                      onChange={v => form.atualizarCampo('contato', v)}
+                    />
+                    <TextField
+                      label="Telefone"
+                      placeholder="(37) 99999-0000"
+                      value={form.dados.telefone}
+                      onChange={v => form.atualizarCampo('telefone', v)}
+                    />
+                  </div>
+                </Container>
+              )}
+
+              {etapa === 2 && (
+                <div className="space-y-6">
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <Container>
+                      <SectionTitle
+                        eyebrow="Mercados"
+                        title="Mercados de atuação"
+                        description="Selecione os mercados em que a empresa atua ou pretende atuar."
+                      />
+                      <div className="mt-6">
+                        <CheckboxGroup
+                          opcoes={MERCADOS}
+                          selecionados={form.dados.mercados}
+                          onToggle={form.toggleMercado}
+                        />
+                      </div>
+                    </Container>
+
+                    <Container>
+                      <SectionTitle
+                        eyebrow="Financiamento"
+                        title="Fontes de recursos (3 anos)"
+                        description="Caso pretenda investir, indique quais fontes de recursos serão utilizadas nos próximos 3 anos."
+                      />
+                      <div className="mt-6">
+                        <CheckboxGroup
+                          opcoes={FONTES_FINANCIAMENTO}
+                          selecionados={Object.entries(form.dados.fontes_financiamento)
+                            .filter(([, v]) => v)
+                            .map(([k]) => k)}
+                          onToggle={v => form.atualizarNested('fontes_financiamento', v, !form.dados.fontes_financiamento[v])}
+                        />
+                      </div>
+                    </Container>
+                  </div>
+
+                  <Container>
+                    <SectionTitle
+                      eyebrow="Investimentos futuros"
+                      title="Possibilidade de investimentos (3 anos)"
+                      description="Indique a possibilidade de investimentos para os próximos 3 anos (1 = Nenhum; 2 = Médio; 3 = Grande)."
+                    />
+                    <div className="mt-6 space-y-1">
+                      {INVESTIMENTOS_FUTUROS.map(item => (
+                        <EscalaRadio
+                          key={item.codigo}
+                          label={item.label}
+                          name={item.codigo}
+                          value={form.dados.investimentos[item.codigo] || null}
+                          onChange={(_, val) => form.atualizarNested('investimentos', item.codigo, val)}
+                          labels={LABELS_INVESTIMENTO}
+                        />
+                      ))}
+                    </div>
+                  </Container>
+
+                  <Container>
+                    <SectionTitle
+                      eyebrow="Impedimentos"
+                      title="O que impede a aquisição de serviços tecnológicos e inovação?"
+                      description="Em relação aos fatores abaixo, indique o nível de impedimento (1 = Baixo; 2 = Médio; 3 = Alto)."
+                    />
+                    <div className="mt-6 space-y-1">
+                      {IMPEDIMENTOS_INOVACAO.map(item => (
+                        <EscalaRadio
+                          key={item.codigo}
+                          label={item.label}
+                          name={item.codigo}
+                          value={form.dados.impedimentos[item.codigo] || null}
+                          onChange={(_, val) => form.atualizarNested('impedimentos', item.codigo, val)}
+                          labels={LABELS_NECESSIDADE}
+                        />
+                      ))}
+                    </div>
+                  </Container>
+                </div>
+              )}
+
+              {etapa === 3 && (
+                <Container>
+                  <SectionTitle
+                    eyebrow={SOLUCOES[0].megatendencia}
+                    title={SOLUCOES[0].titulo}
+                    description="Para cada solução tecnológica, indique o nível de necessidade (demanda) de cada tipo de serviço para sua empresa."
+                  />
+                  <div className="mt-6 space-y-4">
+                    {SOLUCOES[0].itens.map(item => (
+                      <SolucaoCard
+                        key={item.codigo}
+                        item={item}
+                        necessidades={form.dados.necessidades}
+                        onChangeNecessidade={form.atualizarNecessidade}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-4 text-sm text-slate-500">
+                    Escala aplicada: 1 = Baixa necessidade, 2 = Média necessidade, 3 = Alta necessidade.
+                  </p>
+                </Container>
+              )}
+
+              {etapa === 4 && (
+                <Container>
+                  <SectionTitle
+                    eyebrow={SOLUCOES[1].megatendencia}
+                    title={SOLUCOES[1].titulo}
+                    description="Para cada solução tecnológica, indique o nível de necessidade (demanda) de cada tipo de serviço para sua empresa."
+                  />
+                  <div className="mt-6 space-y-4">
+                    {SOLUCOES[1].itens.map(item => (
+                      <SolucaoCard
+                        key={item.codigo}
+                        item={item}
+                        necessidades={form.dados.necessidades}
+                        onChangeNecessidade={form.atualizarNecessidade}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-4 text-sm text-slate-500">
+                    Escala aplicada: 1 = Baixa necessidade, 2 = Média necessidade, 3 = Alta necessidade.
+                  </p>
+                </Container>
+              )}
+
+              {etapa === 5 && (
+                <Container>
+                  <SectionTitle
+                    eyebrow={SOLUCOES[2].megatendencia}
+                    title={SOLUCOES[2].titulo}
+                    description="Para cada solução tecnológica, indique o nível de necessidade (demanda) de cada tipo de serviço para sua empresa."
+                  />
+                  <div className="mt-6 space-y-4">
+                    {SOLUCOES[2].itens.map(item => (
+                      <SolucaoCard
+                        key={item.codigo}
+                        item={item}
+                        necessidades={form.dados.necessidades}
+                        onChangeNecessidade={form.atualizarNecessidade}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-4 text-sm text-slate-500">
+                    Escala aplicada: 1 = Baixa necessidade, 2 = Média necessidade, 3 = Alta necessidade.
+                  </p>
+                </Container>
+              )}
+
+              {etapa === 6 && (
+                <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
+                  <Container>
+                    <SectionTitle
+                      eyebrow="Revisão"
+                      title="Confirmação das respostas"
+                      description="Revise os principais campos antes do envio."
+                    />
+
+                    <div className="mt-6 space-y-4">
+                      <div className="mini-card">
+                        <h3 className="mini-title">Identificação</h3>
+                        <SummaryLine label="Empresa" value={form.dados.nome_empresa} />
+                        <SummaryLine label="Tipologia" value={form.dados.tipologia_atividade} />
+                        <SummaryLine label="Contato" value={form.dados.contato} />
+                        <SummaryLine label="Telefone" value={form.dados.telefone} />
+                      </div>
+
+                      <div className="mini-card">
+                        <h3 className="mini-title">Perfil</h3>
+                        <SummaryLine label="Mercados" value={mercadosSelecionados || 'Nenhum'} />
+                        <SummaryLine label="Fontes" value={fontesSelecionadas || 'Nenhuma'} />
+                      </div>
+
+                      <div className="mini-card">
+                        <h3 className="mini-title">Investimentos (3 anos)</h3>
+                        {INVESTIMENTOS_FUTUROS.map(item => (
+                          <SummaryLine
+                            key={item.codigo}
+                            label={item.label}
+                            value={form.dados.investimentos[item.codigo]
+                              ? LABELS_INVESTIMENTO[form.dados.investimentos[item.codigo] - 1]
+                              : '—'}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="mini-card">
+                        <h3 className="mini-title">Impedimentos</h3>
+                        {IMPEDIMENTOS_INOVACAO.map(item => (
+                          <SummaryLine
+                            key={item.codigo}
+                            label={item.label}
+                            value={form.dados.impedimentos[item.codigo]
+                              ? LABELS_NECESSIDADE[form.dados.impedimentos[item.codigo] - 1]
+                              : '—'}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </Container>
+
+                  <Container>
+                    <SectionTitle
+                      eyebrow="Demanda"
+                      title="Resumo por solução e serviço"
+                      description="Níveis de necessidade informados por tipo de serviço em cada solução tecnológica."
+                    />
+                    <div className="mt-6 space-y-4">
+                      {SOLUCOES.map(sol => (
+                        <div key={sol.codigo} className="mini-card">
+                          <h3 className="mini-title">{sol.titulo}</h3>
+                          {sol.itens.map(item => (
+                            <div key={item.codigo} className="mb-3 last:mb-0">
+                              <p className="text-sm font-semibold text-slate-700 mb-1">{item.descricao}</p>
+                              {SERVICOS.map(serv => {
+                                const chave = `${item.codigo}__${serv.codigo}`
+                                const nivel = form.dados.necessidades[chave]
+                                return (
+                                  <SummaryLine
+                                    key={chave}
+                                    label={serv.nome}
+                                    value={nivel ? LABELS_NECESSIDADE[nivel - 1] : '—'}
+                                  />
+                                )
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </Container>
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-slate-500">
+                  {etapa === 0 ? 'Leia os termos e avance para iniciar.' : 'Navegação em etapas guiadas.'}
+                </div>
+                <div className="flex gap-3">
+                  <ActionButton variant="secondary" type="button" onClick={voltar} disabled={etapa === 0}>
+                    Voltar
+                  </ActionButton>
+                  {etapa < 6 ? (
+                    <ActionButton
+                      variant="primary"
+                      type="button"
+                      onClick={() => {
+                        form.definirErro(null)
+                        if (etapa === 0 && !termosAceitos) {
+                          form.definirErro('Marque a concordância para continuar.')
+                          return
+                        }
+                        if (etapa === 1 && !validarIdentificacao()) return
+                        proxima()
+                      }}
+                    >
+                      {etapa === 0 ? 'Aceitar e continuar' : 'Continuar'}
+                    </ActionButton>
+                  ) : (
+                    <ActionButton
+                      variant="primary"
+                      type="button"
+                      onClick={enviar}
+                      disabled={form.enviando}
+                    >
+                      {form.enviando ? 'Enviando...' : 'Enviar avaliação'}
+                    </ActionButton>
+                  )}
+                </div>
+              </div>
+
+              {form.erro && (
+                <p className="text-sm text-[#b91c1c]">{form.erro}</p>
+              )}
+            </div>
+          </div>
         </div>
-      </header>
+      </div>
 
-      {/* Content */}
-      <main className="max-w-2xl mx-auto px-4 py-6">
-        <ProgressBar etapaAtual={form.etapa} />
-
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          {/* Card header */}
-          <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-            <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide mb-1">
-              Etapa {form.etapa + 1} de {form.totalEtapas}
-            </p>
-            <h2 className="text-lg font-semibold text-gray-800">{TITULOS[form.etapa]}</h2>
-            <p className="text-sm text-gray-500 mt-0.5">{SUBTITULOS[form.etapa]}</p>
-          </div>
-
-          {/* Card body */}
-          <div className="px-6 py-5">
-            {form.etapa === 0 && (
-              <Etapa1Identificacao dados={form.dados} onChange={form.atualizarCampo} />
-            )}
-            {form.etapa === 1 && (
-              <Etapa2Mercados dados={form.dados} onToggle={form.toggleMercado} />
-            )}
-            {form.etapa === 2 && (
-              <Etapa3Investimentos dados={form.dados} onChange={form.atualizarNested} />
-            )}
-            {form.etapa === 3 && (
-              <Etapa4Financiamento dados={form.dados} onChange={form.atualizarNested} />
-            )}
-            {form.etapa === 4 && (
-              <Etapa5Necessidades dados={form.dados} onChange={form.atualizarNecessidade} />
-            )}
-            {form.etapa === 5 && (
-              <Etapa6Confirmacao dados={form.dados} />
-            )}
-          </div>
-
-          {/* Card footer */}
-          <div className="px-6 pb-6 flex justify-between gap-3">
-            <button
-              type="button"
-              onClick={form.anterior}
-              disabled={form.etapa === 0}
-              className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 text-sm font-medium
-                         hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              Anterior
-            </button>
-
-            {form.etapa < form.totalEtapas - 1 ? (
-              <button
-                type="button"
-                onClick={form.proximo}
-                className="px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium
-                           hover:bg-blue-700 transition-colors shadow-sm"
-              >
-                Próximo
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={form.submeter}
-                disabled={form.enviando}
-                className="px-6 py-2.5 rounded-lg bg-green-600 text-white text-sm font-medium
-                           hover:bg-green-700 transition-colors shadow-sm disabled:opacity-60"
-              >
-                {form.enviando ? 'Enviando...' : 'Enviar Respostas'}
-              </button>
-            )}
+      {etapa === 0 && (
+        <div className="fixed bottom-4 left-1/2 z-20 w-[min(100%,1120px)] -translate-x-1/2 px-4">
+          <div className="floating-note">
+            <span className="floating-note-kicker">Fluxo guiado</span>
+            <span>Identificação, perfil, investimentos e necessidade de serviços em uma sequência curta e clara.</span>
           </div>
         </div>
-
-        {form.erro && (
-          <p className="mt-3 text-sm text-red-600 text-center">{form.erro}</p>
-        )}
-
-        <p className="text-center text-xs text-gray-400 mt-6">
-          Levantamento realizado no âmbito do projeto Technology Foresight ·
-          Setor Construção Civil · Divinópolis/MG
-        </p>
-      </main>
+      )}
     </div>
   )
 }
