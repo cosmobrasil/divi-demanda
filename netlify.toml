@@ -1,7 +1,5 @@
 [build]
 publish = "netlify/publish"
-command = "./netlify/build.sh"
 
 [functions]
 directory = "netlify/functions"
-
