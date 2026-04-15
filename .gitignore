@@ -5,7 +5,6 @@ __pycache__/
 *.pyc
 .DS_Store
 venv/
-netlify/publish/
 .netlify/
 
 # PDFs de referência (evitar commit acidental)
