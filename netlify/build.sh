@@ -26,8 +26,6 @@ echo "6) Redirects SPA..."
 cat > "${PUBLISH_DIR}/_redirects" <<'EOF'
 /demanda    /demanda/  301!
 /oferta     /oferta/   301!
-/demanda/*  /demanda/index.html  200
-/oferta/*   /oferta/index.html   200
 EOF
 
 echo
