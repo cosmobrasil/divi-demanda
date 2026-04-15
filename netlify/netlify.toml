@@ -1,5 +1,5 @@
 [build]
-publish = "netlify/publish"
+publish = "publish"
 
 [functions]
-directory = "netlify/functions"
+directory = "functions"
