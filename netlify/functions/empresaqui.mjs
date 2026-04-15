@@ -1,10 +1,21 @@
 export const handler = async (event) => {
-  const token = process.env.EMPRESAQUI_TOKEN || ''
+  const token =
+    process.env.EMPRESAQUI_TOKEN ||
+    process.env.EMPRESAQUI_API_KEY ||
+    process.env.EMPRESAQUI_API_TOKEN ||
+    ''
+  const baseUrl =
+    process.env.EMPRESAQUI_API_URL ||
+    'https://www.empresaqui.com.br/api'
+
   if (!token) {
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-      body: JSON.stringify({ error: 'EMPRESAQUI_TOKEN not set' }),
+      body: JSON.stringify({
+        error:
+          'EmpresaQui token not set. Configure EMPRESAQUI_TOKEN (legacy) or EMPRESAQUI_API_KEY.',
+      }),
     }
   }
 
@@ -17,7 +28,8 @@ export const handler = async (event) => {
     }
   }
 
-  const upstream = `https://www.empresaqui.com.br/api/${encodeURIComponent(token)}/${encodeURIComponent(cnpj)}`
+  const base = String(baseUrl).replace(/\/+$/, '')
+  const upstream = `${base}/${encodeURIComponent(token)}/${encodeURIComponent(cnpj)}`
   const res = await fetch(upstream, { headers: { 'User-Agent': 'netlify-function' } })
   const body = await res.text()
 
