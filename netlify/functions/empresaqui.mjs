@@ -28,14 +28,60 @@ export const handler = async (event) => {
     }
   }
 
-  const base = String(baseUrl).replace(/\/+$/, '')
-  const upstream = `${base}/${encodeURIComponent(token)}/${encodeURIComponent(cnpj)}`
-  const res = await fetch(upstream, { headers: { 'User-Agent': 'netlify-function' } })
-  const body = await res.text()
+  let upstream
+  try {
+    let base = String(baseUrl || '').trim()
+    if (!base) base = 'https://www.empresaqui.com.br/api'
+    // Se o usuário colocou "api.empresaqui.com.br/api" sem protocolo, normaliza.
+    if (!/^https?:\/\//i.test(base)) base = `https://${base}`
+    if (!/\/api\/?$/i.test(base)) base = base.replace(/\/+$/, '') // não forçar /api; respeitar configuração
+
+    const u = new URL(base.replace(/\/+$/, '') + '/')
+    u.pathname = u.pathname.replace(/\/+$/, '') + `/${encodeURIComponent(token)}/${encodeURIComponent(cnpj)}`
+    upstream = u.toString()
+  } catch (e) {
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      body: JSON.stringify({
+        error: 'Invalid EMPRESAQUI_API_URL',
+        detail: e?.message || String(e),
+      }),
+    }
+  }
+
+  let res
+  let body
+  try {
+    const controller = new AbortController()
+    const t = setTimeout(() => controller.abort(), 8000)
+    res = await fetch(upstream, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'netlify-function',
+        Accept: 'application/json,text/plain,*/*',
+      },
+    })
+    clearTimeout(t)
+    body = await res.text()
+  } catch (e) {
+    return {
+      statusCode: 502,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      body: JSON.stringify({
+        error: 'Upstream fetch failed',
+        detail: e?.name === 'AbortError' ? 'timeout' : (e?.message || String(e)),
+      }),
+    }
+  }
 
   return {
     statusCode: res.status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      'X-Upstream-URL': upstream,
+    },
     body,
   }
 }
