@@ -1,2 +1,3 @@
-/demanda    /demanda/  301!
-/oferta     /oferta/   301!
+# (sem redirects aqui)
+# O Netlify já normaliza barra final quando necessário, e redirects manuais
+# podem criar loop (ex: /demanda/ -> /demanda/).

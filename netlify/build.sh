@@ -22,10 +22,9 @@ echo "4) Build demanda em /demanda/ ..."
 echo "5) Build oferta em /oferta/ ..."
 (cd "${ROOT_DIR}/frontend-oferta" && npm run build -- --base=/oferta/ --outDir="${PUBLISH_DIR}/oferta")
 
-echo "6) Redirects SPA..."
+echo "6) Redirects..."
 cat > "${PUBLISH_DIR}/_redirects" <<'EOF'
-/demanda    /demanda/  301!
-/oferta     /oferta/   301!
+# (sem redirects)
 EOF
 
 echo
