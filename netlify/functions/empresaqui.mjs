@@ -52,12 +52,49 @@ export const handler = async (event) => {
     }
   }
 
+  if (!res.ok) {
+    return {
+      statusCode: res.status,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      body,
+    }
+  }
+
+  let payload
+  try {
+    payload = JSON.parse(body)
+  } catch {
+    return {
+      statusCode: 502,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      body: JSON.stringify({
+        error: 'Upstream returned invalid JSON',
+      }),
+    }
+  }
+
+  const cnpjRetornado = String(payload?.cnpj || '').replace(/\D/g, '')
+  const razao = String(payload?.razao || '').trim()
+  const fantasia = String(payload?.fantasia || '').trim()
+
+  // A EmpresaQui às vezes responde 200 com campos vazios para CNPJ inexistente.
+  // Nesse caso, transformamos em 404 para o frontend exibir a mensagem correta.
+  if (!cnpjRetornado || cnpjRetornado !== cnpj || (!razao && !fantasia)) {
+    return {
+      statusCode: 404,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      body: JSON.stringify({
+        error: 'CNPJ inexistente ou não localizado.',
+      }),
+    }
+  }
+
   return {
-    statusCode: res.status,
+    statusCode: 200,
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
     },
-    body,
+    body: JSON.stringify(payload),
   }
 }

@@ -1,3 +1,1 @@
-# (sem redirects aqui)
-# O Netlify já normaliza barra final quando necessário, e redirects manuais
-# podem criar loop (ex: /demanda/ -> /demanda/).
+# (sem redirects)

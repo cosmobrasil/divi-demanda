@@ -14,8 +14,15 @@ export async function buscarEmpresaPorCnpj({ cnpj, signal } = {}) {
   const text = await res.text()
 
   if (!res.ok) {
-    if (import.meta.env.PROD && res.status === 404) {
-      throw new Error('Consulta por CNPJ indisponível neste deploy. (Netlify Function não configurada)')
+    if (res.status === 404) {
+      let msg = 'CNPJ inexistente ou não localizado.'
+      try {
+        const json = JSON.parse(text)
+        msg = json?.error || msg
+      } catch {
+        // mantém a mensagem padrão
+      }
+      throw new Error(msg)
     }
     const msg = text?.trim() ? text.trim() : `HTTP ${res.status}`
     throw new Error(`Falha ao consultar CNPJ: ${msg}`)
