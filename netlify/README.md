@@ -18,5 +18,10 @@ O resultado fica em `netlify/publish/`. Faça upload dessa pasta no Netlify (Dep
 
 ## Observação: CNPJ (EmpresaQui)
 
-Em produção, o autopreenchimento por CNPJ depende de um proxy (CORS). Se você quiser manter essa funcionalidade no Netlify, use uma Netlify Function (ver `netlify/functions/empresaqui.mjs`) e configure a variável `EMPRESAQUI_TOKEN` no painel do Netlify.
+Em produção, o autopreenchimento por CNPJ depende de um proxy (CORS). Se você quiser manter essa funcionalidade no Netlify, use a Netlify Function em `netlify/functions/empresaqui.mjs` e configure apenas a variável `EMPRESAQUI_TOKEN` no painel do Netlify.
 
+Exemplo:
+
+```text
+EMPRESAQUI_TOKEN=seu_token_aqui
+```

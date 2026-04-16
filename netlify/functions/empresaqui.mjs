@@ -4,9 +4,6 @@ export const handler = async (event) => {
     process.env.EMPRESAQUI_API_KEY ||
     process.env.EMPRESAQUI_API_TOKEN ||
     ''
-  const baseUrl =
-    process.env.EMPRESAQUI_API_URL ||
-    'https://www.empresaqui.com.br/api'
 
   if (!token) {
     return {
@@ -14,7 +11,7 @@ export const handler = async (event) => {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
       body: JSON.stringify({
         error:
-          'EmpresaQui token not set. Configure EMPRESAQUI_TOKEN (legacy) or EMPRESAQUI_API_KEY.',
+          'EmpresaQui token not set. Configure EMPRESAQUI_TOKEN or EMPRESAQUI_API_KEY.',
       }),
     }
   }
@@ -28,27 +25,7 @@ export const handler = async (event) => {
     }
   }
 
-  let upstream
-  try {
-    let base = String(baseUrl || '').trim()
-    if (!base) base = 'https://www.empresaqui.com.br/api'
-    // Se o usuário colocou "api.empresaqui.com.br/api" sem protocolo, normaliza.
-    if (!/^https?:\/\//i.test(base)) base = `https://${base}`
-    if (!/\/api\/?$/i.test(base)) base = base.replace(/\/+$/, '') // não forçar /api; respeitar configuração
-
-    const u = new URL(base.replace(/\/+$/, '') + '/')
-    u.pathname = u.pathname.replace(/\/+$/, '') + `/${encodeURIComponent(token)}/${encodeURIComponent(cnpj)}`
-    upstream = u.toString()
-  } catch (e) {
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-      body: JSON.stringify({
-        error: 'Invalid EMPRESAQUI_API_URL',
-        detail: e?.message || String(e),
-      }),
-    }
-  }
+  const upstream = `https://www.empresaqui.com.br/api/${encodeURIComponent(token)}/${encodeURIComponent(cnpj)}`
 
   let res
   let body
@@ -80,7 +57,6 @@ export const handler = async (event) => {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
-      'X-Upstream-URL': upstream,
     },
     body,
   }
