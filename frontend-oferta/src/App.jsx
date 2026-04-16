@@ -39,7 +39,7 @@ function SectionTitle({ eyebrow, title, description }) {
   )
 }
 
-function TextField({ label, placeholder, value, onChange, required = false }) {
+function TextField({ label, placeholder, value, onChange, required = false, error = '', helper = '' }) {
   return (
     <label className="field">
       <span className="field-label">
@@ -50,8 +50,15 @@ function TextField({ label, placeholder, value, onChange, required = false }) {
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="field-input"
+        aria-invalid={Boolean(error)}
+        className={`field-input ${error ? 'border-[#b91c1c] focus:border-[#b91c1c] focus:ring-[#b91c1c]/20' : ''}`}
       />
+      {helper && <span className="mt-1 text-xs text-slate-500">{helper}</span>}
+      {error && (
+        <span className="mt-1 text-xs font-medium text-[#b91c1c]" role="alert">
+          {error}
+        </span>
+      )}
     </label>
   )
 }
@@ -131,6 +138,8 @@ export default function App() {
   }
 
   const instituicaoLabel = TIPOS_INSTITUICAO.find(op => op.value === form.dados.tipo_instituicao)?.label
+  const erroCnpj =
+    form.erro && /cnpj/i.test(form.erro) ? form.erro : ''
 
   const fontesSelecionadas = Object.entries(form.dados.fontes_financiamento)
     .filter(([, ativo]) => ativo)
@@ -274,6 +283,8 @@ export default function App() {
                           placeholder="Ex: 21.792.257/0001-01"
                           value={form.dados.cnpj}
                           onChange={v => form.atualizarCampo('cnpj', v)}
+                          helper="Digite um CNPJ válido. Se o número estiver errado, o sistema avisa antes de preencher."
+                          error={erroCnpj}
                         />
                         <ActionButton
                           variant="secondary"
